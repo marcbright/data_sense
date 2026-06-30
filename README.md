@@ -1,48 +1,41 @@
 # AI Data Analyst Agent
 
-An AI-powered data analyst that lets you upload CSV, Excel, or PDF files and ask questions about your data in plain English. The agent generates SQL/Python code, executes analysis, creates visualizations, and explains findings.
+An AI agent that lets you chat with your data in plain English. Upload a CSV, Excel, or PDF file and ask questions — the agent writes SQL, runs analysis, generates charts, and explains findings automatically.
 
-## Phase 1: Foundation
-This repository contains the core configuration, utility modules, and folder structure for the AI Data Analyst Agent.
+## Live Demo
+[Add your Streamlit Cloud URL here once deployed]
 
-## Setup Instructions
+## Features
+- Natural language to SQL/Python query generation
+- Self-healing agent (retries failed queries automatically)
+- Auto-selected, reasoned chart visualisations
+- Proactive insight detection on file upload
+- Multi-turn conversation memory
+- Downloadable PDF analysis reports
+- Full audit trail ("Show my work" on every answer)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ai-data-analyst
-   ```
-
-2. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables**
-   - Copy `.env.example` to `.env`
-   - Add your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-   - Customize other settings like `MODEL_NAME` or `MAX_FILE_SIZE_MB` if needed.
-      - Alternatively, set `LLM_PROVIDER=groq` and provide the following variables to use a Groq-compatible endpoint:
-         - `GROQ_API_KEY` — your Groq API key
-         - `GROQ_API_URL` — the full HTTP(s) inference endpoint for your Groq provider
-         - When using `LLM_PROVIDER=groq`, ensure `GROQ_API_URL` accepts a JSON payload with `prompt` and returns a textual `text`/`output` field (see `config.py` for the minimal expected shape).
-
-5. **Run the application**
-   ```bash
-   streamlit run app/main.py
-   ```
+## Architecture
+Built as a ReAct agent: intent classification → planning → tool execution → evaluation → response composition, with a registry of 8 specialised tools (SQL executor, Python executor, chart generator, insight narrator, anomaly detector, memory retriever, schema inspector, report builder).
 
 ## Tech Stack
-- **AI Engine**: Google Gemini (via `google-generativeai`)
-- **Web Interface**: Streamlit
-- **Data Engine**: DuckDB & Pandas
-- **Visualization**: Plotly
-- **Document Parsing**: PyMuPDF
-- **Vector Memory**: ChromaDB
-- **Validation**: Pydantic
+- LLM: Groq (Llama 3.3 70B)
+- Data engine: Pandas, DuckDB
+- Visualisation: Plotly
+- Frontend: Streamlit
+- Memory: ChromaDB
+- PDF generation: ReportLab
+
+## Local Setup
+1. Clone this repo
+2. python -m venv venv && source venv/bin/activate
+3. pip install -r requirements.txt
+4. cp .env.example .env
+5. Add your Groq API key (free at console.groq.com) to .env
+6. streamlit run app/main.py
+
+## Deployment
+Deployed on Streamlit Community Cloud. Secrets are configured via the Streamlit Cloud dashboard, not .env.
+
+## Author
+Bright Osei Kesse — Data Scientist & AI Engineer
+[Add LinkedIn / portfolio link]

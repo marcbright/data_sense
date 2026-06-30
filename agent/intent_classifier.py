@@ -9,7 +9,7 @@ import time
 from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional
-from config import generate_content
+from config import generate_content, settings
 
 class IntentType(Enum):
     """
@@ -129,9 +129,10 @@ Rules:
                 if col and col.lower() in schema_text
             ]
             if valid_columns:
-                print(
-                    f"[DEBUG] Overriding clarification request — found valid column match(es): {valid_columns}"
-                )
+                if settings.debug:
+                    print(
+                        f"[DEBUG] Overriding clarification request — found valid column match(es): {valid_columns}"
+                    )
                 result["requires_clarification"] = False
                 result["clarification_question"] = None
 

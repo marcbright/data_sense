@@ -1,15 +1,17 @@
 .env
-__pycache__
+.streamlit/secrets.toml
+__pycache__/
 *.pyc
-.chroma
+.chroma/
 chroma_store/
 output/exports/*.pdf
 output/exports/*.png
+uploaded_files/*
+!uploaded_files/.gitkeep
 venv/
 .venv/
 *.egg-info
 .DS_Store
-uploaded_files/
 
 node_modules
 dist

@@ -39,11 +39,13 @@ def main():
     try:
         validate_config()
     except ValueError as e:
-        st.error(f"⚠️ Configuration Error: {str(e)}")
-        st.markdown("""
-        Please ensure you have a `.env` file with a valid `GEMINI_API_KEY`.
-        Refer to `.env.example` for the required format.
-        """)
+        st.error(
+            "⚠️ **Configuration Required**\n\n"
+            "This app needs API credentials to function.\n\n"
+            "If you're the developer: add your GROQ_API_KEY to Streamlit Cloud's secrets manager "
+            "(App settings → Secrets).\n\n"
+            f"Technical detail: {str(e)}"
+        )
         st.stop()
 
     # 2. INITIALISE SESSION STATE
