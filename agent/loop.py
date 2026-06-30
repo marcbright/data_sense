@@ -12,7 +12,7 @@ from typing import Any, List, Optional, Dict
 import pandas as pd
 
 from config import generate_content
-from google.api_core.exceptions import ResourceExhausted
+
 from data_engine.utils import load_prompt
 from agent.session_state import SessionState
 from agent.intent_classifier import classify_intent, IntentType
@@ -481,23 +481,39 @@ def run_agent(question: str, session_state: SessionState) -> AgentResponse:
             execution_time_ms=elapsed
         )
 
-    except ResourceExhausted as e:
+    except Exception as e:
+        elapsed = (time.time() - agent_start) * 1000
+        error_str = str(e)
+
+        # Groq rate limit detection (works without importing 
+        # a Groq-specific exception class)
+        if "rate_limit" in error_str.lower() or "429" in error_str:
+            return AgentResponse(
+                success=False,
+                answer_text=(
+                    "⚠️ **API Rate Limit Reached**\n\n"
+                    "The Groq free tier quota has been temporarily "
+                    "exhausted.\n\n"
+                    "**Per-minute limit:** Wait 60 seconds and "
+                    "try again.\n\n"
+                    "**Daily limit:** Wait until tomorrow, or "
+                    "upgrade your plan at https://console.groq.com"
+                ),
+                narration="",
+                chart=None,
+                chart_reason="",
+                result_dataframe=None,
+                tool_call_log=session_state.tool_call_log,
+                clarification_needed=False,
+                clarification_question=None,
+                confidence_level="Low",
+                error_message=f"RateLimit: {error_str[:200]}",
+                execution_time_ms=elapsed,
+            )
+
         return AgentResponse(
             success=False,
-            answer_text=(
-                "⚠️ **API Rate Limit Reached**\n\n"
-                "The Gemini free tier quota has been temporarily "
-                "exhausted. This can happen in two ways:\n\n"
-                "**Per-minute limit:** Wait 60 seconds and try again."
-                "\n\n"
-                "**Daily limit:** The free tier allows a limited "
-                "number of requests per day. Options:\n"
-                "- Wait until tomorrow (quota resets at midnight)\n"
-                "- Upgrade to a paid Google AI Studio plan at "
-                "https://ai.google.dev\n"
-                "- Switch to model `gemini-2.0-flash-lite` in your "
-                ".env (lower capability but higher free quota)"
-            ),
+            answer_text="An unexpected error occurred during analysis.",
             narration="",
             chart=None,
             chart_reason="",
@@ -506,9 +522,9 @@ def run_agent(question: str, session_state: SessionState) -> AgentResponse:
             clarification_needed=False,
             clarification_question=None,
             confidence_level="Low",
-            error_message=f"ResourceExhausted: {str(e)[:200]}",
-            execution_time_ms=(time.time() - agent_start) * 1000,
-        )
+            error_message=error_str,
+            execution_time_ms=elapsed
+        )    
 
     except Exception as e:
         elapsed = (time.time() - agent_start) * 1000
