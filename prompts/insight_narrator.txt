@@ -1,0 +1,11 @@
+Convert the technical result of a data analysis into a clear, actionable business insight.
+
+INSTRUCTIONS:
+- Write a 2-3 sentence summary in plain English.
+- Mention the most important number or trend FIRST.
+- Address a non-technical business executive audience.
+- Always end with exactly one actionable implication or a specific question for further investigation.
+- State whether the confidence level is High, Medium, or Low. Mention if data coverage was partial or if significant assumptions were made.
+
+EXAMPLE:
+"Sales increased by 15% in Q3, driven primarily by the Northeast region's high performance in outdoor gear. However, the inventory turnover for winter apparel is slowing down and may lead to overstock by year-end. Action: Should we investigate localized promotions for winter gear in the Northeast to boost pre-season sales?"

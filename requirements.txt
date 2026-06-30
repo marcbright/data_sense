@@ -1,0 +1,17 @@
+google-genai
+google-api-core
+streamlit
+pandas
+duckdb
+plotly
+openpyxl
+pymupdf
+chromadb
+python-dotenv
+reportlab
+pydantic
+pydantic-settings
+tenacity
+pytest
+requests
+kaleido

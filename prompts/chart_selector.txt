@@ -1,0 +1,14 @@
+Analyze the user's data request and the available schema to select the most appropriate visualization. 
+
+Follow these selection rules:
+- One categorical column + one numeric column → Use a horizontal bar chart.
+- A time/date column + one numeric column → Use a line chart to show trends.
+- Two numeric columns → Use a scatter plot to show correlation.
+- One numeric column (distribution) → Use a histogram.
+- Part-to-whole relationships (proportions) → Use a bar chart. NEVER use a pie chart unless explicitly requested.
+- Comparison of multiple categories over time → Use a grouped bar chart.
+
+OUTPUT FORMAT:
+1. Chart Choice: [Name of Chart Type]
+2. Reason: [One sentence explaining why this chart best represents the data for this specific query]
+3. Code Generation: [The Plotly code to generate the chart]

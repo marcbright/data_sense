@@ -1,0 +1,8 @@
+{
+  "name": "AI Data Analyst Agent",
+  "description": "An AI agent that analyzes CSV, Excel, and PDF files using Gemini, DuckDB, and Pandas to answer questions and generate insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
