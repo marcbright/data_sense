@@ -3,7 +3,7 @@
 An AI agent that lets you chat with your data in plain English. Upload a CSV, Excel, or PDF file and ask questions — the agent writes SQL, runs analysis, generates charts, and explains findings automatically.
 
 ## Live Demo
-[Add your Streamlit Cloud URL here once deployed]
+(https://data-sense-ai.streamlit.app/)
 
 ## Features
 - Natural language to SQL/Python query generation
@@ -38,4 +38,5 @@ Deployed on Streamlit Community Cloud. Secrets are configured via the Streamlit 
 
 ## Author
 Bright Osei Kesse — Data Scientist & AI Engineer
-[Add LinkedIn / portfolio link]
+LinkedIn: https://www.linkedin.com/in/bright-osei-kesse/
+portfolio link: https://bright-osei-kesse.vercel.app/
