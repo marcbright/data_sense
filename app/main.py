@@ -62,6 +62,9 @@ def main():
         
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+
+    if "agent_running" not in st.session_state:
+        st.session_state.agent_running = False
         
     if "file_loaded" not in st.session_state:
         st.session_state.file_loaded = False
@@ -209,38 +212,46 @@ def main():
         st.rerun()
 
     # This part handles the actual agent execution if the last message was a user message
-    if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
+    if (
+        st.session_state.chat_history
+        and st.session_state.chat_history[-1]["role"] == "user"
+        and not st.session_state.agent_running
+    ):
+        st.session_state.agent_running = True
         last_user_message = st.session_state.chat_history[-1]["content"]
-        
-        # Show typing indicator
-        typing = render_typing_indicator()
-        
-        # Run agent
-        with st.spinner("Analyzing..."):
-            response = run_agent(last_user_message, session)
-        
-        # Clear typing indicator
-        typing.empty()
-        
-        # Append answer
-        answer_content = response.clarification_question if response.clarification_needed else response.answer_text
-        
-        st.session_state.chat_history.append({
-            "role": "assistant",
-            "content": answer_content,
-            "chart": response.chart,
-            "result_df": response.result_dataframe,
-            "chart_reason": response.chart_reason,
-            "confidence": response.confidence_level,
-            "tool_log": response.tool_call_log
-        })
-        
-        # Sync session back
-        st.session_state.agent_session = session
 
-        # Force DataFrame reference to survive Streamlit rerun
-        if session.active_dataframe is not None:
-            st.session_state["_active_df_backup"] = session.active_dataframe
+        try:
+            # Show typing indicator
+            typing = render_typing_indicator()
+            
+            # Run agent
+            with st.spinner("Analyzing..."):
+                response = run_agent(last_user_message, session)
+            
+            # Clear typing indicator
+            typing.empty()
+            
+            # Append answer
+            answer_content = response.clarification_question if response.clarification_needed else response.answer_text
+            
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": answer_content,
+                "chart": response.chart,
+                "result_df": response.result_dataframe,
+                "chart_reason": response.chart_reason,
+                "confidence": response.confidence_level,
+                "tool_log": response.tool_call_log
+            })
+            
+            # Sync session back
+            st.session_state.agent_session = session
+
+            # Force DataFrame reference to survive Streamlit rerun
+            if session.active_dataframe is not None:
+                st.session_state["_active_df_backup"] = session.active_dataframe
+        finally:
+            st.session_state.agent_running = False
 
         st.rerun()
 

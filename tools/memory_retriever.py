@@ -10,13 +10,18 @@ import chromadb
 from config import settings
 from tools.registry import ToolResult
 
-def get_or_create_collection(session_id: str) -> chromadb.Collection:
+def get_or_create_collection(session_id: str) -> chromadb.Collection | None:
     """
     Retrieves or establishes a ChromaDB collection for the current session.
+    Returns None if ChromaDB cannot be initialised.
     """
-    client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
-    collection_name = f"session_{session_id}".replace("-", "_")
-    return client.get_or_create_collection(name=collection_name)
+    try:
+        client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
+        collection_name = f"session_{session_id}".replace("-", "_")
+        return client.get_or_create_collection(name=collection_name)
+    except Exception as e:
+        print(f"[ChromaDB] Could not initialise: {e}")
+        return None
 
 def store_qa_pair(question: str, answer: str, session_id: str) -> None:
     """
@@ -24,6 +29,9 @@ def store_qa_pair(question: str, answer: str, session_id: str) -> None:
     """
     try:
         collection = get_or_create_collection(session_id)
+        if collection is None:
+            return
+
         timestamp = datetime.datetime.now().isoformat()
         
         collection.add(
@@ -43,6 +51,17 @@ def run(query: str, session_state: dict) -> ToolResult:
     
     try:
         collection = get_or_create_collection(session_id)
+        if collection is None:
+            execution_time = (time.time() - start_time) * 1000
+            return ToolResult(
+                success=True,
+                tool_name="memory_retriever",
+                output="No prior context available.",
+                output_type="string",
+                error_message=None,
+                execution_time_ms=execution_time,
+                code_executed=None
+            )
         
         # Check if collection has documents
         if collection.count() == 0:

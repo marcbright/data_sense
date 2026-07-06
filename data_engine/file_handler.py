@@ -11,7 +11,7 @@ from typing import Dict, Optional, List
 import pandas as pd
 import fitz  # PyMuPDF
 
-from config import settings
+from config import settings, _is_cloud_environment
 from data_engine.utils import sanitise_filename, format_file_size
 
 @dataclass
@@ -33,7 +33,8 @@ def save_uploaded_file(file_bytes: bytes, filename: str) -> Path:
     Saves raw bytes (from a Streamlit file uploader) to the uploaded_files/ directory.
     Returns the full path.
     """
-    upload_dir = Path("uploaded_files")
+    base = Path("/tmp/uploaded_files") if _is_cloud_environment() else Path("uploaded_files")
+    upload_dir = base
     upload_dir.mkdir(exist_ok=True)
     
     safe_name = sanitise_filename(filename)

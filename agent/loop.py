@@ -299,48 +299,52 @@ def run_agent(question: str, session_state: SessionState) -> AgentResponse:
 
             # Tool Execution with specific logic per tool type
             if step.tool_name == "sql_executor":
-                while retry_count <= session_state.max_retries:
-                    sql = _generate_sql_for_question(question, session_state, last_error)
-                    
-                    if sql == "CANNOT_SQL":
-                        print(f"[DEBUG] SQL generation returned CANNOT_SQL. Schema context length: {len(session_state.schema_context)}")
-                        print(f"[DEBUG] Active dataframe is None: {session_state.active_dataframe is None}")
-                        # Try python fallback logic if SQL fails or is impossible
-                        py_code = _generate_python_for_question(question, session_state, last_error)
-                        if py_code != "CANNOT_PYTHON":
-                            tool_dict = _build_tool_dict(session_state)
-                            result = get_tool_by_name("python_executor")(py_code, question, tool_dict)
-                            session_state.log_tool_call("python_executor", result.success, result.execution_time_ms, result.error_message)
-                            if result.success:
-                                sql_result = result
-                                step_results[step.step_number] = result
-                                session_state.last_result_df = tool_dict.get("last_result_df")
-                                break
-                        break # Cannot do either
-
-                    tool_dict = _build_tool_dict(session_state)
-                    result = get_tool_by_name("sql_executor")(sql, step.tool_params["explanation"], tool_dict)
-                    session_state.log_tool_call("sql_executor", result.success, result.execution_time_ms, result.error_message)
-
-                    if result.success:
-                        sql_result = result
-                        step_results[step.step_number] = result
-                        session_state.last_result_df = tool_dict.get("last_result_df")
-                        break
-                    else:
-                        last_error = result.error_message
-                        retry_count += 1
-                        if retry_count > session_state.max_retries:
-                            # Final fallback to python
+                try:
+                    while retry_count <= session_state.max_retries:
+                        sql = _generate_sql_for_question(question, session_state, last_error)
+                        
+                        if sql == "CANNOT_SQL":
+                            print(f"[DEBUG] SQL generation returned CANNOT_SQL. Schema context length: {len(session_state.schema_context)}")
+                            print(f"[DEBUG] Active dataframe is None: {session_state.active_dataframe is None}")
+                            # Try python fallback logic if SQL fails or is impossible
                             py_code = _generate_python_for_question(question, session_state, last_error)
-                            tool_dict = _build_tool_dict(session_state)
-                            py_result = get_tool_by_name("python_executor")(py_code, question, tool_dict)
-                            session_state.log_tool_call("python_executor", py_result.success, py_result.execution_time_ms, py_result.error_message)
-                            if py_result.success:
-                                sql_result = py_result
-                                step_results[step.step_number] = py_result
-                                session_state.last_result_df = tool_dict.get("last_result_df")
+                            if py_code != "CANNOT_PYTHON":
+                                tool_dict = _build_tool_dict(session_state)
+                                result = get_tool_by_name("python_executor")(py_code, question, tool_dict)
+                                session_state.log_tool_call("python_executor", result.success, result.execution_time_ms, result.error_message)
+                                if result.success:
+                                    sql_result = result
+                                    step_results[step.step_number] = result
+                                    session_state.last_result_df = tool_dict.get("last_result_df")
+                                    break
+                            break # Cannot do either
+
+                        tool_dict = _build_tool_dict(session_state)
+                        result = get_tool_by_name("sql_executor")(sql, step.tool_params["explanation"], tool_dict)
+                        session_state.log_tool_call("sql_executor", result.success, result.execution_time_ms, result.error_message)
+
+                        if result.success:
+                            sql_result = result
+                            step_results[step.step_number] = result
+                            session_state.last_result_df = tool_dict.get("last_result_df")
                             break
+                        else:
+                            last_error = result.error_message
+                            retry_count += 1
+                            if retry_count > session_state.max_retries:
+                                # Final fallback to python
+                                py_code = _generate_python_for_question(question, session_state, last_error)
+                                tool_dict = _build_tool_dict(session_state)
+                                py_result = get_tool_by_name("python_executor")(py_code, question, tool_dict)
+                                session_state.log_tool_call("python_executor", py_result.success, py_result.execution_time_ms, py_result.error_message)
+                                if py_result.success:
+                                    sql_result = py_result
+                                    step_results[step.step_number] = py_result
+                                    session_state.last_result_df = tool_dict.get("last_result_df")
+                                break
+                except Exception as sql_err:
+                    print(f"[SQL STEP ERROR] {type(sql_err).__name__}: {sql_err}")
+                    session_state.log_tool_call("sql_executor", False, 0.0, str(sql_err))
             
             elif step.tool_name == "chart_generator":
                 if sql_result and sql_result.success and isinstance(sql_result.output, pd.DataFrame):
@@ -527,10 +531,24 @@ def run_agent(question: str, session_state: SessionState) -> AgentResponse:
         )    
 
     except Exception as e:
+        import traceback
         elapsed = (time.time() - agent_start) * 1000
+        full_error = traceback.format_exc()
+        print(f"[AGENT ERROR] {type(e).__name__}: {str(e)}")
+        print(f"[AGENT TRACEBACK]\n{full_error}")
+
+        error_detail = str(e)
+        answer = (
+            f"An error occurred during analysis.\n\n"
+            f"**Error type:** `{type(e).__name__}`\n"
+            f"**Detail:** {error_detail[:300]}\n\n"
+            f"If this is a file system or database error, "
+            f"try re-uploading your dataset."
+        )
+
         return AgentResponse(
             success=False,
-            answer_text="An unexpected error occurred during analysis.",
+            answer_text=answer,
             narration="",
             chart=None,
             chart_reason="",
@@ -539,6 +557,6 @@ def run_agent(question: str, session_state: SessionState) -> AgentResponse:
             clarification_needed=False,
             clarification_question=None,
             confidence_level="Low",
-            error_message=str(e),
+            error_message=error_detail,
             execution_time_ms=elapsed
         )

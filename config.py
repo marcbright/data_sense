@@ -34,11 +34,32 @@ def _get_setting(key: str, default=None):
     """
     try:
         import streamlit as st
-        if hasattr(st, "secrets") and key in st.secrets:
+        if (
+            hasattr(st, "secrets")
+            and key in st.secrets
+            and not _is_cloud_environment()
+        ):
             return st.secrets[key]
     except Exception:
         pass
+
+    if _is_cloud_environment() and key in {"CHROMA_PERSIST_DIR", "EXPORT_DIR"}:
+        return default
+
     return os.environ.get(key, default)
+
+
+def _is_cloud_environment() -> bool:
+    """
+    Detects if running on Streamlit Community Cloud.
+    Cloud mounts app at /mount/src/ and has no writable
+    home directory outside /tmp.
+    """
+    return (
+        os.path.exists("/mount/src") or
+        os.environ.get("STREAMLIT_SHARING_MODE") == "1" or
+        "/mount/src" in os.environ.get("PWD", "")
+    )
 
 
 class Settings(BaseSettings):
@@ -57,8 +78,12 @@ class Settings(BaseSettings):
     model_name: str = "llama-3.3-70b-versatile"
     max_output_tokens: int = 4096
     max_retries: int = 3
-    chroma_persist_dir: str = "./memory/chroma_store"
-    export_dir: str = "./output/exports"
+    chroma_persist_dir: str = (
+        "/tmp/chroma_store" if _is_cloud_environment() else "./memory/chroma_store"
+    )
+    export_dir: str = (
+        "/tmp/exports" if _is_cloud_environment() else "./output/exports"
+    )
     max_file_size_mb: int = 50
     debug: bool = False
 
@@ -69,11 +94,25 @@ class Settings(BaseSettings):
         values.setdefault("model_name", _get_setting("MODEL_NAME", "llama-3.3-70b-versatile"))
         values.setdefault("max_output_tokens", _get_setting("MAX_OUTPUT_TOKENS", 4096))
         values.setdefault("max_retries", _get_setting("MAX_RETRIES", 3))
-        values.setdefault("chroma_persist_dir", _get_setting("CHROMA_PERSIST_DIR", "./memory/chroma_store"))
-        values.setdefault("export_dir", _get_setting("EXPORT_DIR", "./output/exports"))
+        values.setdefault(
+            "chroma_persist_dir",
+            _get_setting(
+                "CHROMA_PERSIST_DIR",
+                "/tmp/chroma_store" if _is_cloud_environment() else "./memory/chroma_store"
+            )
+        )
+        values.setdefault(
+            "export_dir",
+            _get_setting(
+                "EXPORT_DIR",
+                "/tmp/exports" if _is_cloud_environment() else "./output/exports"
+            )
+        )
         values.setdefault("max_file_size_mb", _get_setting("MAX_FILE_SIZE_MB", 50))
         values.setdefault("debug", _get_setting("DEBUG", False))
         super().__init__(**values)
+        self.chroma_persist_dir = values.get("chroma_persist_dir", self.chroma_persist_dir)
+        self.export_dir = values.get("export_dir", self.export_dir)
 
 
 # Singleton instance
