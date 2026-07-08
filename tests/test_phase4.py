@@ -3,13 +3,20 @@ Tests for Phase 4: Agent Brain.
 Validates session state, intent classification, and planning logic.
 """
 
-import pytest
-import pandas as pd
+import json
 import os
-from agent.session_state import SessionState
-from agent.intent_classifier import IntentResult, IntentType, classify_intent
-from agent.planner import create_plan, ExecutionPlan
+
+import pandas as pd
+import pytest
+from agent.intent_classifier import (
+    IntentResult,
+    IntentType,
+    _extract_columns_from_session,
+    classify_intent,
+)
 from agent.loop import run_agent
+from agent.planner import ExecutionPlan, create_plan
+from agent.session_state import SessionState
 
 def test_session_state_creation():
     """
@@ -107,6 +114,50 @@ def test_plan_export_has_one_step():
     
     assert len(plan.steps) == 1
     assert plan.steps[0].tool_name == "report_builder"
+
+
+def test_extract_columns_from_session_uses_loaded_dataframe():
+    """The classifier should read actual dataframe columns when present."""
+    state = SessionState()
+    state.active_dataframe = pd.DataFrame({
+        "region": ["North", "South"],
+        "sales_usd": [1200, 850],
+        "product": ["Laptop", "Phone"],
+    })
+
+    columns = _extract_columns_from_session(state)
+
+    assert columns == ["region", "sales_usd", "product"]
+
+
+def test_classify_intent_uses_real_columns_to_avoid_clarification(monkeypatch):
+    """Questions naming real columns should not trigger unnecessary clarification."""
+
+    def fake_generate_content(prompt):
+        return json.dumps({
+            "intent": "data_query",
+            "confidence": 0.9,
+            "requires_clarification": True,
+            "clarification_question": "Which column do you mean?",
+            "detected_columns": [],
+            "detected_time_range": None,
+            "detected_metric": None,
+        })
+
+    monkeypatch.setattr("agent.intent_classifier.generate_content", fake_generate_content)
+
+    state = SessionState()
+    state.active_dataframe = pd.DataFrame({
+        "department": ["HR", "IT"],
+        "salary": [3000, 4500],
+        "hire_date": ["2020", "2021"],
+    })
+
+    result = classify_intent("Which department has the highest salary?", state)
+
+    assert result.requires_clarification is False
+    assert "department" in result.detected_columns
+    assert result.intent == IntentType.DATA_QUERY
 
 @pytest.mark.skipif(not os.environ.get("GEMINI_API_KEY"), reason="Gemini API key not set")
 def test_agent_response_greeting_integration():
